@@ -4,7 +4,8 @@
 const byte OC1A_PIN = 9;
 const byte OC1B_PIN = 10;
 
-const word PWM_FREQ_HZ = 25100; //Adjust this value to adjust the frequency
+const word PWM_FREQ_HZ = 25000; //Adjust this value to adjust the frequency
+// const word PWM_FREQ_HZ = 30000; //Adjust this value to adjust the frequency
 const word TCNT1_TOP = 16000000/(2*PWM_FREQ_HZ);
 
 void pwm_setup() {

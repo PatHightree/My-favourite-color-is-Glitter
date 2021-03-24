@@ -6,6 +6,7 @@
 bool DebugLog = false;
 int MaxFanPower = 50;
 float SinePeriod = 20;
+int MinDistanceOutput = 5;
 
 void setup() 
 {
@@ -39,8 +40,8 @@ void loop()
   Serial.print(fanPower);
 
   // Limit by distance [0,50]cm => fan power percentage [0,MaxFanPower]
-  // Hand at 0 distance yields 10 output, so -10
-  int distance = ultrasonic_loop()-10;
+  // Hand at 0 distance yields MinDistanceOutput output, so substract MinDistanceOutput
+  int distance = max(ultrasonic_loop()-MinDistanceOutput, 0);
   if (distance < MaxFanPower)
     fanPower = distance;
 
