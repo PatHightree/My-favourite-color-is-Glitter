@@ -1,6 +1,7 @@
 #include<Arduino.h>
 #include<ultrasonic.h>
 #include<pwm.h>
+#include<esc.h>
 #include<math.h>
 
 bool DebugLog = false;
@@ -11,9 +12,9 @@ int MinDistanceOutput = 5;
 void setup() 
 {
   ultrasonic_setup();
-  pwm_setup();
+  esc_setup();
 
-  Serial.begin(9600); // Starts the serial communication
+  //Serial.begin(9600); // Starts the serial communication
 }
 
 float GenerateWave()
@@ -34,6 +35,9 @@ float GenerateWave()
 
 void loop() 
 {
+  esc_loop();
+  return;
+
   // Sine wave is the basic output  
   byte fanPower = GenerateWave();
   

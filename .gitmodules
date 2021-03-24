@@ -1,0 +1,3 @@
+[submodule "lib/DShot-Arduino"]
+	path = lib/DShot-Arduino
+	url = https://github.com/gueei/DShot-Arduino.git
