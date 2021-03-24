@@ -11,7 +11,7 @@ int MinDistanceOutput = 5;
 
 void setup() 
 {
-  ultrasonic_setup();
+  //ultrasonic_setup();
   esc_setup();
 
   //Serial.begin(9600); // Starts the serial communication
