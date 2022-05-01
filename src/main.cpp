@@ -21,19 +21,32 @@ void setup() {
   ultrasonic_setup();
 }
 
+float MapFloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void DebugLogGraph(float value)
+{
+    int graphWidth = 20;
+
+    Serial.print('|');
+    for(int i = 0; i < graphWidth; i++)
+      if (value * graphWidth / MaxServoOutput > i && 
+          value * graphWidth / MaxServoOutput < i+1)
+        Serial.print("#");
+      else
+        Serial.print(" " );
+      Serial.println('|');
+}
+
 float GenerateWave()
 {
   float wave = sin(millis() * (2*PI) / 1000 / SinePeriod);
-  wave += 1;
-  wave /= 2;
-  wave *= MaxServoOutput;
-  
+  wave = MapFloat(wave, -1, 1, 0, MaxServoOutput);
+
   if (DebugLog)
-  {
-    for(int i = -1; i<wave; i++)
-      Serial.print("#");
-    Serial.println();
-  }
+    DebugLogGraph(wave);
   return wave;
 }
 
