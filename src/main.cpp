@@ -1,59 +1,77 @@
-#include<Arduino.h>
-#include<ultrasonic.h>
-#include<pwm.h>
-#include<esc.h>
-#include<math.h>
+#include <arduino.h>
+#include <math.h>
+#include <Servo.h>
+#include <ultrasonic.h>
 
-bool DebugLog = false;
-int MaxFanPower = 50;
-float SinePeriod = 20;
-int MinDistanceOutput = 5;
+#define ServoPin 9
 
-void setup() 
-{
+// Configuration
+bool DebugLog = true;
+float SinePeriod = 5;
+int MaxServoOutput = 180;
+int MinSonarDistance = 5;
+
+// Variables
+Servo myservo;
+int angle = 0;
+
+void setup() {
+  Serial.begin(9600);
   ultrasonic_setup();
-  esc_setup();
+  myservo.attach(ServoPin);
+}
 
-  //Serial.begin(9600); // Starts the serial communication
+float MapFloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void DebugLogGraph(float value)
+{
+    int graphWidth = 20;
+
+    Serial.print('|');
+    for(int i = 0; i < graphWidth; i++)
+      if (value * graphWidth / MaxServoOutput > i && 
+          value * graphWidth / MaxServoOutput < i+1)
+        Serial.print("#");
+      else
+        Serial.print(" " );
+      Serial.println('|');
 }
 
 float GenerateWave()
 {
   float wave = sin(millis() * (2*PI) / 1000 / SinePeriod);
-  wave += 1;
-  wave /= 2;
-  wave *= MaxFanPower;
-  
-  if (DebugLog)
-  {
-    for(int i = -1; i<wave; i++)
-      Serial.print("#");
-    Serial.println();
-  }
+
+  // if (DebugLog)
+  //   DebugLogGraph(wave);
   return wave;
 }
 
-void loop() 
-{
-  esc_loop();
-  return;
-
-  // Sine wave is the basic output  
-  byte fanPower = GenerateWave();
+void loop() {
+  // Sine wave is the basic output [-1,1]
+  float wave = GenerateWave();
   
-  Serial.print(fanPower);
-
-  // Limit by distance [0,50]cm => fan power percentage [0,MaxFanPower]
-  // Hand at 0 distance yields MinDistanceOutput output, so substract MinDistanceOutput
-  int distance = max(ultrasonic_loop()-MinDistanceOutput, 0);
-  if (distance < MaxFanPower)
-    fanPower = distance;
-
-  Serial.print("\t");
-  Serial.print(distance);
-  Serial.print("\t");
-  Serial.print(fanPower);
-  Serial.println();
+  // Obrain sonar distance [5,50]cm => sonarMultiplier [0,1]
+  int distance = max(ultrasonic_loop()-MinSonarDistance, 0);
+  float sonarMultiplier = constrain(distance, 0.0, 50.0) / 50.0;
   
-  setPwmDuty(fanPower);
+  // Apply sonar multiplier
+  wave = wave * sonarMultiplier;
+  // Map to servo signal range
+  byte servoOutput = MapFloat(wave, -1, 1, 0, MaxServoOutput);
+
+  if (DebugLog) 
+  {
+    Serial.print("\t");
+    Serial.print(distance);
+    Serial.print("\t");
+    Serial.print(sonarMultiplier);
+    Serial.print("\t");
+    Serial.print(servoOutput);
+    Serial.println();
+  }  
+
+  myservo.write(servoOutput);
 }
