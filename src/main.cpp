@@ -1,17 +1,24 @@
 #include <arduino.h>
 #include <math.h>
+#include <Servo.h>
+#include <ultrasonic.h>
 
-#define PotPin1 A0
-#define PotPin2 A1
-#define LedPin 13
-#define VUPin1 5
-#define VUPin2 6
+#define ServoPin 9
+
+// Configuration
+bool DebugLog = true;
+float SinePeriod = 5;
+int MaxServoOutput = 180;
+int MinSonarDistance = 5;
+
+// Variables
+Servo myservo;
+int angle = 0;
+
 void setup() {
   Serial.begin(9600);
-  pinMode(PotPin1, INPUT);
-  pinMode(LedPin, OUTPUT);
-  pinMode(VUPin1, OUTPUT);
-  pinMode(VUPin2, OUTPUT);
+  ultrasonic_setup();
+  myservo.attach(ServoPin);
 }
 
 float MapFloat(float x, float in_min, float in_max, float out_min, float out_max)
@@ -19,31 +26,52 @@ float MapFloat(float x, float in_min, float in_max, float out_min, float out_max
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+void DebugLogGraph(float value)
+{
+    int graphWidth = 20;
+
+    Serial.print('|');
+    for(int i = 0; i < graphWidth; i++)
+      if (value * graphWidth / MaxServoOutput > i && 
+          value * graphWidth / MaxServoOutput < i+1)
+        Serial.print("#");
+      else
+        Serial.print(" " );
+      Serial.println('|');
+}
+
 float GenerateWave()
 {
-  float SinePeriod = 2;
   float wave = sin(millis() * (2*PI) / 1000 / SinePeriod);
 
+  // if (DebugLog)
+  //   DebugLogGraph(wave);
   return wave;
 }
+
 void loop() {
-  digitalWrite(LedPin, 1);
+  // Sine wave is the basic output [-1,1]
+  float wave = GenerateWave();
+  
+  // Obrain sonar distance [5,50]cm => sonarMultiplier [0,1]
+  int distance = max(ultrasonic_loop()-MinSonarDistance, 0);
+  float sonarMultiplier = constrain(distance, 0.0, 50.0) / 50.0;
+  
+  // Apply sonar multiplier
+  wave = wave * sonarMultiplier;
+  // Map to servo signal range
+  byte servoOutput = MapFloat(wave, -1, 1, 0, MaxServoOutput);
 
-  float voltageScale = 0.15/5.0; // VU input range / default pin voltage output range
+  if (DebugLog) 
+  {
+    Serial.print("\t");
+    Serial.print(distance);
+    Serial.print("\t");
+    Serial.print(sonarMultiplier);
+    Serial.print("\t");
+    Serial.print(servoOutput);
+    Serial.println();
+  }  
 
-  // Display 2 sine waves on the VU meters
-  // analogWrite(VUPin1, MapFloat(GenerateWave(), -1, 1, 0, 255) * voltageScale);
-  // analogWrite(VUPin2, MapFloat(GenerateWave(), 1, -1, 0, 255) * voltageScale);
-
-  int value;
-
-  // Read potmeter2 and display on VU1
-  value = analogRead(PotPin2);
-  value = map(value, -100, 1023, 0, 255);
-  analogWrite(VUPin1, value * voltageScale);
-
-  // Display sine wave on VU2 with amplitude specified by potmeter2
-  analogWrite(VUPin2, MapFloat(GenerateWave() * value, 255, -255, 0, 255) * voltageScale);
-
-  delay(10);
+  myservo.write(servoOutput);
 }
