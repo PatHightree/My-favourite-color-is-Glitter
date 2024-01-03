@@ -15,6 +15,14 @@ MotorDriver m;
 void setup() {
   Serial.begin(9600);
   ultrasonic_setup();
+
+  for (int i = 0; i < 5; i++)
+  {
+    m.motor(MotorID, FORWARD, 255);
+    delay(500);
+    m.motor(MotorID, FORWARD, 0);
+    delay(500);
+  }
 }
 
 float MapFloat(float x, float in_min, float in_max, float out_min, float out_max)
@@ -61,5 +69,5 @@ void loop() {
   delay(1000);
   Serial.print("Off\n");
   m.motor(MotorID, FORWARD, 0);
-  delay(10000);
+  delay(20000);
 }
