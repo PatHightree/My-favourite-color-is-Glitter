@@ -10,6 +10,13 @@ int motor1pin2 = 8;
 int enablepin1 = 9;
 int enablepin2 = 10;
 
+const int StateWave = 1;
+int StateWaveDuration = 2000;
+const int StateStop = 2;
+int StateStopDuration = 15000;
+int State;
+unsigned long StateStartMillis;
+
 void setup() {
   Serial.begin(9600);
   
@@ -19,6 +26,9 @@ void setup() {
   pinMode(enablepin2, OUTPUT);
   analogWrite(enablepin1, 0);
   analogWrite(enablepin2, 0);
+
+  State = StateWave;
+  StateStartMillis = millis();
 }
 
 void Forward()
@@ -35,17 +45,29 @@ void Reverse()
 
 int run = 200;
 int stop = 0;
-int runTime = 3000;
-int stopTime = 15000;
 
 void loop() 
 {
-  Forward();
-  analogWrite(enablepin1, run); //Controlling speed (0 = off and 255 = max speed)
-  delay(runTime);
-
-  analogWrite(enablepin1, stop);
-  delay(stopTime);
+  switch (State)
+  {
+    case StateWave:
+      Forward();
+      analogWrite(enablepin1, run); //Controlling speed (0 = off and 255 = max speed)
+      if (millis() > StateStartMillis + StateWaveDuration)
+      {
+        State = StateStop;
+        StateStartMillis = millis();  
+      }
+    break;
+    case StateStop:
+      analogWrite(enablepin1, stop);
+      if (millis() > StateStartMillis + StateStopDuration)
+      {
+        State = StateWave;
+        StateStartMillis = millis();
+      }
+      break;
+  }
 
   // Reverse();
   // analogWrite(enablepin1, run);
