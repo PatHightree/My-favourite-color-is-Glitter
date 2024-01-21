@@ -7,35 +7,48 @@
 #include <wave.h>
 
 GOTStateMachine stateMachine(50); // execute every 50 milliseconds
+void StatePurge();
 void StateWave();
 void StateWait();
 
 // Configuration
-int motor1pin1 = 7;
-int motor1pin2 = 8;
-int enablepin1 = 9;
+int lightPin1 = 5;
+int lightPin2 = 6;
+int motorPin1 = 7;
+int motorPin2 = 8;
+int motorPwmPin = 9;
+int lightPwmPin = 10;
 
 void Forward()
 {
-  digitalWrite(motor1pin1, HIGH);
-  digitalWrite(motor1pin2, LOW);
+  digitalWrite(motorPin1, HIGH);
+  digitalWrite(motorPin2, LOW);
 }
 
 void Reverse()
 {
-  digitalWrite(motor1pin1, LOW);
-  digitalWrite(motor1pin2, HIGH);
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, HIGH);
 }
 
 void setup() {
   Serial.begin(9600);
   
-  pinMode(motor1pin1, OUTPUT);
-  pinMode(motor1pin2, OUTPUT);
-  pinMode(enablepin1, OUTPUT);
-  analogWrite(enablepin1, 0);
+  // Turn on light
+  pinMode(lightPin1, OUTPUT);
+  pinMode(lightPin2, OUTPUT);
+  pinMode(lightPwmPin, OUTPUT);
+  digitalWrite(lightPin1, HIGH);
+  digitalWrite(lightPin2, LOW);
+  analogWrite(lightPwmPin, 255);
+  // Initialize motor
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(motorPwmPin, OUTPUT);
+  analogWrite(motorPwmPin, 0);
   Forward();
 
+  // stateMachine.setStartState(StatePurge);
   stateMachine.setStartState(StateWave);
 }
 
@@ -44,18 +57,27 @@ void loop()
   stateMachine.execute();
 }
 
+void StatePurge()
+{
+    analogWrite(motorPwmPin, 255);
+
+    if (stateMachine.isDelayComplete(5000))
+      stateMachine.changeState(StateWait);
+}
+
 void StateWave()
 {
-    int durationMs = 1000;
-    int period = durationMs * 2;  // we want the first PI of the sine wave
-    int amplitudeTwentheMotor = 60;
-    int amplitudePSUMotor = 200;
+    float durationMs = 2000;
+    float amplitudeTwentheMotor = 60;
+    float amplitudePSUMotor = 255;
+
     int amplitude = amplitudePSUMotor;
-    float value = sin((millis() - stateMachine.getCurrentStateStartTime()) * 2*PI / period); // [-1,1]
+    float progress = (millis() - stateMachine.getCurrentStateStartTime()) / durationMs;
+    float value = sin(progress * PI); // [0, pi] -> [-1,1]
     value = value * 0.5 + 0.5; // [0,1]
     value *= amplitude;
     Serial.println(value);
-    analogWrite(enablepin1, value); //Controlling speed (0 = off and 255 = max speed)
+    analogWrite(motorPwmPin, value); //Controlling speed (0 = off and 255 = max speed)
 
     if (stateMachine.isDelayComplete(durationMs))
       stateMachine.changeState(StateWait);
@@ -64,7 +86,7 @@ void StateWave()
 void StateWait()
 {
   if(stateMachine.isFirstTime())
-    analogWrite(enablepin1, 0);
+    analogWrite(motorPwmPin, 0);
   
   if (stateMachine.isDelayComplete(10000))
     stateMachine.changeState(StateWave);
