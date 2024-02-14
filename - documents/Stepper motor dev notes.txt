@@ -1,0 +1,9 @@
+Stepper motor dev notes
+
+Motor wiring
+To find out how to wire up the motor, measure which pins have continuity, that's a coil.
+
+A4988
+I haven't touched the pot meter, seems like it's not needed until you run high loads.
+Got it running after burning one... don't put it backwards into the breadboard.
+Pins are annoyingly mirrored with the TMC2209. Also, the pin names are printed on the bottom :\
