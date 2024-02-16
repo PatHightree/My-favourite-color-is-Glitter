@@ -1,74 +1,37 @@
+// This is a basic TMC2209 hello world, without libraries
+// For the schematic, see "TMC2209 hello world without libraries.fzz"
+//
+// If this code+schematic don't work for you:
+// - Check the wiring (again)
+// - Play with the delays in the loop (100-1000us)
+// - This forum post was helpful in debugging https://forum.arduino.cc/t/using-a-tmc2209-silent-stepper-motor-driver-with-an-arduino/666992
+
 #include <Arduino.h>
 
-// Example sketch to control a stepper motor with A4988 stepper motor driver 
-// and Arduino without a library. 
-// More info: https://www.makerguides.com
+const int enPin = 2;
+const int dirPin = 3;
+const int stepPin = 4;
 
-// Define stepper motor connections and steps per revolution:
-#define dirPin 2
-#define stepPin 3
-#define stepsPerRevolution 200
-
-void setup() {
-  // Declare pins as output:
+void setup()
+{
+  Serial.begin(9600);
+  Serial.println("Setup");
+  pinMode(enPin, OUTPUT);
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
+  digitalWrite(enPin, HIGH);
+  delayMicroseconds(1000);
+
+  Serial.println("Enable");
+  digitalWrite(enPin, LOW);
+  digitalWrite(dirPin, HIGH);
 }
 
-void loop() {
-  // Set the spinning direction clockwise:
-  digitalWrite(dirPin, HIGH);
+void loop()
+{
+  digitalWrite(stepPin, HIGH);
+  delayMicroseconds(250);
 
-  // Spin the stepper motor 1 revolution slowly:
-  for (int i = 0; i < stepsPerRevolution; i++) {
-    // These four lines result in 1 step:
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(2000);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(2000);
-  }
-
-  delay(1000);
-
-  // Set the spinning direction counterclockwise:
-  digitalWrite(dirPin, LOW);
-
-  // Spin the stepper motor 1 revolution quickly:
-  for (int i = 0; i < stepsPerRevolution; i++) {
-    // These four lines result in 1 step:
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(1000);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(1000);
-  }
-
-  delay(1000);
-
-  // Set the spinning direction clockwise:
-  digitalWrite(dirPin, HIGH);
-
-  // Spin the stepper motor 5 revolutions fast:
-  for (int i = 0; i < 5 * stepsPerRevolution; i++) {
-    // These four lines result in 1 step:
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(500);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(500);
-  }
-
-  delay(1000);
-
-  // Set the spinning direction counterclockwise:
-  digitalWrite(dirPin, LOW);
-
-  //Spin the stepper motor 5 revolutions fast:
-  for (int i = 0; i < 5 * stepsPerRevolution; i++) {
-    // These four lines result in 1 step:
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(500);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(500);
-  }
-
-  delay(1000);
+  digitalWrite(stepPin, LOW);
+  delayMicroseconds(250);
 }
