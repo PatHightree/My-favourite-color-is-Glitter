@@ -27,6 +27,11 @@ void SetState(int _state)
   StateStartTime = millis();
 }
 
+void SetStateAfterMs(int _durationMs, int _state)
+{
+  if (millis() > StateStartTime + _durationMs) SetState(_state);
+}
+
 float Remap(float x, float in_min, float in_max, float out_min, float out_max)
 {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -39,7 +44,7 @@ float Wave(float _periodSeconds)
 
 float Wave(unsigned long _startMillis, float _periodSeconds)
 {
-  return Wave(_periodSeconds - _startMillis);
+  return sin((millis() - _startMillis) * 2*PI / 1000 / _periodSeconds);
 }
 
 float Wave255(float _periodSeconds)
@@ -86,19 +91,22 @@ void MotorStateMachine()
       else
         MD.motor(MotorID, FORWARD, 0);
 
-      if (millis() > StateStartTime + 5000) SetState(StateStopMotor);
+      SetStateAfterMs(5000, StateStopMotor);
       break;
     case StateStopMotor:
       // Stop motor
       MD.motor(MotorID, FORWARD, 0);
 
-      if (millis() > StateStartTime + 19250) SetState(StatePulseMotor);
+      SetStateAfterMs(19000, StatePulseMotor);
       break;
     case StatePulseMotor:
-      // Pulse motor
-      MD.motor(MotorID, FORWARD, MotorSpeed);
+      // Pulse to agitate the fluid
+      if (Wave(StateStartTime, 1) > 0)
+        MD.motor(MotorID, FORWARD, MotorSpeed * 1);
+      else
+        MD.motor(MotorID, FORWARD, 0);
 
-      if (millis() > StateStartTime + 750) SetState(StateStopMotor);
+      SetStateAfterMs(1500, StateStopMotor);
       break;
   }
 }
