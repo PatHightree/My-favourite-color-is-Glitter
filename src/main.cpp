@@ -4,6 +4,7 @@
 #include <ultrasonic.h>
 
 // Configuration
+bool MotorDebug = false; // Blink leds with motor
 int MotorID = 1;
 int MotorSpeed = 255;
 int Led1ID = 2;
@@ -18,17 +19,20 @@ const int State_SpoolingUp = 0; // Bring the fluid up to speed
 const int State_MotorStop = 1;  // Let the fluid coast
 const int State_MotorPulse = 2; // Pulse to bring the fluid back up to speed
 // State timing
-int PeriodS = 20;
+int PeriodS = 25;
 int PeriodMs = PeriodS * 1000;
 // State timing
-int MotorPulse_DurationMs = 2000;
-int MotorPulse_PulseLengthMs = 200;
+int MotorPulse_DurationMs = 3000;
+int PulseLengthStart = 200;
+float PulseLengthMultiplier = 1.1;
 int MotorStop_DurationMs = PeriodMs - MotorPulse_DurationMs;
 
 // Variables
 MotorDriver MD;
 int State = -1;
 unsigned long StateStartTime;
+unsigned long PulseLengthMs;
+unsigned long PulseStartTime;
 
 void SetState(int _state)
 {
@@ -56,6 +60,16 @@ float WaveMs(unsigned long _startMs, float _periodMs)
   return sin((millis() - _startMs) * 2*PI / _periodMs);
 }
 
+void Motor(int _speed)
+{
+  MD.motor(MotorID, FORWARD, _speed);
+  if (MotorDebug)
+  {
+    MD.motor(Led2ID, FORWARD, _speed);
+    MD.motor(Led2ID, FORWARD, _speed);
+  }
+}
+
 unsigned long SpoolingEnd;
 void LedStateMachine()
 {
@@ -68,6 +82,8 @@ void LedStateMachine()
   }
   else
   {
+    if (MotorDebug) return;
+
     float fadeOut = LedFadeOutSeconds - (millis() - SpoolingEnd) / (LedFadeOutSeconds * 1000);
     fadeOut = max(fadeOut, 0);
     fadeOut = fadeOut * 255 / LedFadeOutSeconds;
@@ -84,27 +100,29 @@ void MotorStateMachine()
   switch(State)
   {
     case State_SpoolingUp:
-      // Pulse motor for 5 seconds, pulse because we don't want the stick to bounce around
-      if (WaveS(1) > 0)
-        MD.motor(MotorID, FORWARD, MotorSpeed);
-      else
-        MD.motor(MotorID, FORWARD, 0);
+      // Pulse motor repeatedly to get fluid moving
+      Motor(WaveS(1) > 0 ? MotorSpeed : 0);
 
       SetStateAfterMs(5000, State_MotorStop);
       break;
     case State_MotorStop:
       // Stop motor
-      MD.motor(MotorID, FORWARD, 0);
+      Motor(0);
 
       SetStateAfterMs(MotorStop_DurationMs, State_MotorPulse);
+      PulseLengthMs = PulseLengthStart;
+      PulseStartTime = millis();
       break;
     case State_MotorPulse:
-      // Pulse to agitate the fluid
-      if (WaveMs(StateStartTime, MotorPulse_PulseLengthMs) > 0)
-        MD.motor(MotorID, FORWARD, MotorSpeed);
-      else
-        MD.motor(MotorID, FORWARD, 0);
-
+      // Pulse with increasing length to agitate the fluid
+      if (millis() - PulseStartTime > PulseLengthMs)
+      {
+        PulseLengthMs *= PulseLengthMultiplier;
+        PulseStartTime = millis();
+      }
+      bool positive = WaveMs(PulseStartTime, PulseLengthMs) > 0;
+      Motor(positive ? MotorSpeed : 0);
+      
       SetStateAfterMs(MotorPulse_DurationMs, State_MotorStop);
       break;
   }
@@ -112,6 +130,8 @@ void MotorStateMachine()
 
 void setup() {
   Serial.begin(9600);
+  PulseLengthMs = PulseLengthStart;
+  PulseStartTime = millis();
   SetState(State_SpoolingUp);
 }
 
